@@ -1,15 +1,15 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
+# INFO: the script is posix shell compliant
 
 OVMF_FD_DIR="${OVMF_FD_DIR:-/usr/share/ovmf/x64}"
+FILE="$(basename "$0")"
 __esp_dir_structure="EFI/BOOT"
 
-function log() {
+log() {
     loglevel=info
 
     case "$1" in
-    -l=*) loglevel="${1#*=}"
-          shift
-          ;;
+    -l=*) loglevel="${1#*=}"; shift ;;
     esac
 
     case "$loglevel" in
@@ -35,10 +35,10 @@ while getopts :cbrhndi:e: opt; do
     b) build=true ;;
     r) run=true   ;;
     n) noop=true  ;;
-    i) imgfile="$(realpath "$OPTARG")";;
-    e) espdir="$OPTARG" ;;
-    d) profile=debug  ;;
-    h) printf "Usage: %s [options]? \n" "$(basename "$0")"
+    i) imgfile="$(realpath "$OPTARG")" ;;
+    e) espdir="$OPTARG"                ;;
+    d) profile=debug                   ;;
+    h) printf "Usage: %s [options]? \n" "$FILE"
        printf " -c remove the configured espdir               \n"
        printf " -b run cargo build                            \n"
        printf " -r run the uefi image using qemu              \n"
@@ -46,21 +46,16 @@ while getopts :cbrhndi:e: opt; do
        printf " -i configure imgfile path                     \n"
        printf " -e configure espdir                           \n"
        printf " -d enable debug build                         \n"
-       exit 0
-       ;;
-    ?) log -l=error "Invalid option -$OPTARG, try $(basename "$0") -h"
-       exit 1
-       ;;
+       exit 0 ;;
+    ?) log -l=error "Invalid option -$OPTARG, try $FILE -h"; exit 1 ;;
     esac
 done
 
 if $build; then
     log "Building UEFI image..."
-
     if [ $profile = debug ]; then
          cargo build --target=x86_64-unknown-uefi
     else cargo build --release --target=x86_64-unknown-uefi; fi
-
     imgfile="$(realpath  ./target/x86_64-unknown-uefi/$profile/quartz.efi)"
 fi
 
@@ -79,7 +74,8 @@ $run && qemu-system-x86_64 -enable-kvm                                       \
 if $clear; then
     espdir=$(realpath "$espdir")
     log -l=warn "Removing $espdir"
-    if [ -d "$espdir" ]; then rm -rf "$espdir";
+    if [ -d "$espdir" ]; then
+         rm -rf "$espdir";
     else log -l=warn "$espdir does not exist skipping..."
     fi
 fi
